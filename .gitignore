@@ -1,0 +1,38 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# OS/system files
+.DS_Store
+Thumbs.db
+
+# SQLite database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Pytest cache
+.pytest_cache/
+
+# Coverage
+htmlcov/
+.coverage
+
+# VSCode & IDE configs
+.vscode/
+.idea/
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/
