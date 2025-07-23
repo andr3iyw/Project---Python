@@ -1,7 +1,7 @@
 from flask import Flask, session, redirect, url_for
 import asyncio
 
-from .db import init_db
+#from .db import init_db
 from .views.math_routes import math_blueprint
 from .views.auth_routes import auth_blueprint
 
@@ -20,6 +20,6 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    asyncio.run(init_db())
+    #asyncio.run(init_db())
     app = create_app()
     app.run(debug=True)
