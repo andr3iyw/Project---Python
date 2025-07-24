@@ -1,1 +1,7 @@
-Flask
+flask[async]
+pydantic
+aiosqlite
+flake8
+pytest
+pytest-asyncio
+streamlit
