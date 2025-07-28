@@ -12,7 +12,7 @@ if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
 def login(username, password):
-    login_url = "http://localhost:5000/auth/login"
+    login_url = "http://localhost:8000/auth/login"
     data = {"username": username, "password": password}
     response = st.session_state['session'].post(login_url, data=data, allow_redirects=False)
     # If login is successful, Flask redirects to / (root). Check for 302 and Location header
@@ -37,7 +37,7 @@ if not st.session_state['authenticated']:
         new_username = st.text_input("New Username", key="register_username")
         new_password = st.text_input("New Password", type="password", key="register_password")
         if st.button("Register"):
-            register_url = "http://localhost:5000/auth/register"
+            register_url = "http://localhost:8000/auth/register"
             data = {"username": new_username, "password": new_password}
             response = st.session_state['session'].post(register_url, data=data, allow_redirects=False)
             if response.status_code == 302 and response.headers.get("Location", "").endswith("/auth/login"):
@@ -58,17 +58,17 @@ if st.button("Compute"):
     try:
         if operation == "pow":
             response = st.session_state['session'].get(
-                "http://localhost:5000/math/pow",
+                "http://localhost:8000/math/pow",
                 params={"base": base, "exp": exponent}
             )
         elif operation == "factorial":
             response = st.session_state['session'].get(
-                "http://localhost:5000/math/factorial",
+                "http://localhost:8000/math/factorial",
                 params={"n": n}
             )
         elif operation == "fibonacci":
             response = st.session_state['session'].get(
-                "http://localhost:5000/math/fibonacci",
+                "http://localhost:8000/math/fibonacci",
                 params={"n": n}
             )
 
@@ -84,7 +84,7 @@ if st.button("Compute"):
 st.markdown("---")
 if st.checkbox("Recent logs from database"):
     try:
-        response = st.session_state['session'].get("http://localhost:5000/math/logs")
+        response = st.session_state['session'].get("http://localhost:8000/math/logs")
         if response.status_code == 200:
             logs = response.json()
             if logs:
