@@ -10,53 +10,53 @@ from app.models.request_log import insert_log
 math_blueprint = Blueprint("math", __name__)
 
 @math_blueprint.route("/pow")
-def compute_pow():
+async def compute_pow():
     data = PowInput(base=request.args.get("base"), exponent=request.args.get("exp"))
-    result = asyncio.run(math_controller.compute_pow(data.base, data.exponent))
+    result = await math_controller.compute_pow(data.base, data.exponent)
 
-    db =  asyncio.run(get_db_connection())
+    db = await get_db_connection()
     input_json = json.dumps({"base": data.base, "exp": data.exponent})
     result_str = str(result)
-    asyncio.run(insert_log(db, "pow", input_json, result_str))
+    await insert_log(db, "pow", input_json, result_str)
+    await db.close()
 
     return jsonify({"operation": "pow", "base": data.base, "exp": data.exponent, "result": result})
 
-@math_blueprint.route("/factorial")
-def compute_factorial():
-    data = FactorialInput(n=request.args.get("n"))
-    result = asyncio.run(math_controller.compute_factorial(data.n))
 
-    db = asyncio.run(get_db_connection())
+@math_blueprint.route("/factorial")
+async def compute_factorial():
+    data = FactorialInput(n=request.args.get("n"))
+    result = await math_controller.compute_factorial(data.n)
+
+    db = await get_db_connection()
     input_json = json.dumps({"n": data.n})
     result_str = str(result)
-    asyncio.run(insert_log(db, "factorial", input_json, result_str))
+    await insert_log(db, "factorial", input_json, result_str)
+    await db.close()
 
     return jsonify({"operation": "factorial", "n": data.n, "result": result})
 
 @math_blueprint.route("/fibonacci")
-def compute_fibonacci():
+async def compute_fibonacci():
     data = FibonacciInput(n=request.args.get("n"))
-    result = asyncio.run(math_controller.compute_fibonacci(data.n))
+    result = await math_controller.compute_fibonacci(data.n)
 
-    db = asyncio.run(get_db_connection())
+    db = await get_db_connection()
     input_json = json.dumps({"n": data.n})
     result_str = str(result)
-    asyncio.run(insert_log(db, "fibonacci", input_json, result_str))
+    await insert_log(db, "fibonacci", input_json, result_str)
+    await db.close()
 
     return jsonify({"operation": "fibonacci", "n": data.n, "result": result})
 
 @math_blueprint.route("/logs")
-def get_logs():
+async def get_logs():
     try:
-        db = asyncio.run(get_db_connection())
+        db = await get_db_connection()
 
-        async def fetch():
-            async with db.execute("SELECT * FROM request_log ORDER BY id DESC LIMIT 20;") as cursor:
-                rows = await cursor.fetchall()
-            await db.close()
-            return rows
-
-        rows = asyncio.run(fetch())
+        async with db.execute("SELECT * FROM request_log ORDER BY id DESC LIMIT 20;") as cursor:
+            rows = await cursor.fetchall()
+        await db.close()
 
         logs = [
             {"id": row[0], "operation": row[1], "input_data": row[2], "result": row[3], "timestamp": row[4]}

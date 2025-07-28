@@ -5,3 +5,6 @@ flake8
 pytest
 pytest-asyncio
 streamlit
+fastapi
+uvicorn
+httpx
