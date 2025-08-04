@@ -35,7 +35,7 @@ def login():
             valid = asyncio.run(check_login())
             if valid:
                 session['username'] = username
-                return redirect(url_for('root'))
+                return redirect(url_for('auth.login'))
             else:
                 error = 'Invalid credentials'
     return render_template_string(login_page, error=error)

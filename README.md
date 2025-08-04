@@ -1,56 +1,59 @@
 # Math Microservice Project
 
 This project is split into three microservices and a Streamlit GUI:
-- **Auth Microservice** (Flask, port 5001)
-- **Math Microservice** (Flask, port 5002)
-- **Gateway Microservice** (FastAPI, port 8000)
-- **Streamlit GUI** (interacts via Gateway)
+
+- **Auth Microservice** (Flask, port 5001): handles user registration and login
+- **Math Microservice** (Flask, port 5002): computes power, factorial, and Fibonacci operations
+- **Gateway Microservice** (FastAPI, port 8000): acts as a reverse proxy between GUI and backend services
+- **Streamlit GUI** (port 8501): user interface for interacting with the system
 
 ## Prerequisites
+
 - Python 3.10+
+- Docker & Docker Compose
 - Install dependencies:
+  
   ```
   pip install -r requirements.txt
   ```
-  (You may also need to install `uvicorn`, `httpx`, and `streamlit` if not in requirements.txt)
 
-## How to Run Everything
+---
 
-### 1. Start the Auth Microservice
-```
-cd src/auth_service
-python app.py
-```
-This runs the auth service on port 5001.
+## How to Run Everything (via Docker)
 
-### 2. Start the Math Microservice
-```
-cd src/math_service
-python app.py
-```
-This runs the math service on port 5002.
+> Recommended for quick setup and clean dependency management
 
-### 3. Start the Gateway Microservice
-```
-cd src/microservice_math/app
-uvicorn gateway:app --port 8000
-```
-This runs the FastAPI gateway on port 8000.
+### 1. Build & Start All Services
 
-### 4. Start the Streamlit GUI
+From the root directory:
 ```
-cd src/microservice_math
-streamlit run gui.py
+docker-compose up --build
 ```
-The GUI will interact with the gateway at http://localhost:8000.
+
+This launches:
+- Flask-based `auth_service` on port **5001**
+- Flask-based `math_service` on port **5002**
+- FastAPI `gateway` on port **8000**
+- Streamlit GUI on port **8501**
+
+### 2. Access the GUI
+
+Open your browser at:  
+**[http://localhost:8501](http://localhost:8501)**
+
+---
 
 ## Usage
-- Use the GUI to register/login and perform math operations.
-- All requests go through the gateway, which routes them to the correct microservice.
+
+- Use the GUI to register/login and compute mathematical operations.
+- All requests flow through the API Gateway, which routes them to the correct microservice.
+- Each request is logged into the shared SQLite database (`microservice_math.db`).
+- Recent logs can be viewed in the GUI.
+
+---
 
 ## Notes
-- Make sure all services are running before using the GUI.
-- The database file is shared between services (default: `microservice_math.db`).
-- If you need to initialize the database, run the `init_db` function from either microservice.
-# Project---Python
-Proiect Python 
+
+- Ensure all services are running before interacting with the GUI.
+- The SQLite database is shared across services using a Docker volume.
+- If logs don’t appear, make sure the `request_log` table exists or that the database volume is mounted correctly.

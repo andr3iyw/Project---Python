@@ -1,0 +1,31 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# SQLite database files
+*.db
+
+# Python and IDE configs
+*.log
+*.env
+.env.*
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# VS Code / PyCharm
+.vscode/
+.idea/
+
+# Test and coverage artifacts
+.coverage
+.pytest_cache/
+htmlcov/

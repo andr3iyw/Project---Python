@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/microservice_math/ ./microservice_math/
+WORKDIR /app/microservice_math
+
+EXPOSE 8501
+CMD ["streamlit", "run", "gui.py", "--server.port=8501", "--server.enableCORS=false"]

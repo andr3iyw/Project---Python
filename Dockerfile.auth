@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/auth_service/ ./auth_service/
+WORKDIR /app/auth_service
+
+CMD ["python", "app.py"]
