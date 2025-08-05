@@ -1,7 +1,7 @@
 import aiosqlite
 from models.user_sql import CREATE_USER_TABLE_SQL
 
-DB_PATH = "../microservice_math.db"
+DB_PATH = "/app/db/microservice_math.db"
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:

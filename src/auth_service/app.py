@@ -1,4 +1,6 @@
 from flask import Flask
+from db import init_db
+import asyncio
 
 def create_app():
     app = Flask(__name__)
@@ -37,7 +39,7 @@ def create_app():
                 valid = asyncio.run(check_login())
                 if valid:
                     session['username'] = username
-                    return redirect(url_for('root'))
+                    return redirect(url_for('login'))
                 else:
                     error = 'Invalid credentials'
         return render_template_string(login_page, error=error)
@@ -80,5 +82,6 @@ def create_app():
     return app
 
 if __name__ == "__main__":
+    asyncio.run(init_db())  # Initialize the database
     app = create_app()
-    app.run(port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)

@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request, Response
 import httpx
 
 app = FastAPI()
-MATH_SERVICE_URL = 'http://localhost:5002'
-AUTH_SERVICE_URL = 'http://localhost:5001'
+MATH_SERVICE_URL = 'http://math_service:5002'
+AUTH_SERVICE_URL = 'http://auth_service:5001'
 
 @app.get("/")
 async def root():

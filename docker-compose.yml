@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  auth_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.auth
+    ports:
+      - "5001:5001"
+    volumes:
+      - shared-db:/app/db
+
+  math_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.math
+    ports:
+      - "5002:5002"
+    volumes:
+      - shared-db:/app/db
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth_service
+      - math_service
+
+  gui:
+    build:
+      context: .
+      dockerfile: Dockerfile.gui
+    ports:
+      - "8501:8501"
+    depends_on:
+      - gateway
+    volumes:
+      - shared-db:/app/db
+
+volumes:
+  shared-db:
