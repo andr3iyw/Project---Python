@@ -8,3 +8,4 @@ streamlit
 fastapi
 uvicorn
 httpx
+black

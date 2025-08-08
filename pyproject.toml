@@ -1,0 +1,13 @@
+[tool.black]
+line-length = 79
+target-version = ['py311']
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | __pycache__
+  | build
+  | dist
+  | .*Dockerfile.*
+)/
+'''

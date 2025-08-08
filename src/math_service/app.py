@@ -13,12 +13,14 @@ app.secret_key = "mathsecretkey"
 def compute_pow():
     base = request.args.get("base", type=float)
     exp = request.args.get("exp", type=float)
-    result = base ** exp if base is not None and exp is not None else None
+    result = base**exp if base is not None and exp is not None else None
 
     if base is not None and exp is not None:
         asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result))
 
-    return jsonify({"operation": "pow", "base": base, "exp": exp, "result": result})
+    return jsonify(
+        {"operation": "pow", "base": base, "exp": exp, "result": result}
+    )
 
 
 @app.route("/factorial")
@@ -69,11 +71,16 @@ def get_logs():
         print("LOG FETCH ERROR:", e)
         return jsonify({"error": str(e)}), 500
 
-#helpers
+
+# helpers
+
 
 async def log_to_db(operation: str, input_data: dict, result):
-    from microservice_math.app.db import get_db_connection #import here to avoid circular imports
+    from microservice_math.app.db import (
+        get_db_connection,
+    )  # import here to avoid circular imports
     from microservice_math.app.models.request_log import insert_log
+
     db = await get_db_connection()
     input_json = json.dumps(input_data)
     await insert_log(db, operation, input_json, str(result))
@@ -82,11 +89,15 @@ async def log_to_db(operation: str, input_data: dict, result):
 
 async def fetch_logs_from_db():
     from microservice_math.app.db import get_db_connection
+
     db = await get_db_connection()
-    async with db.execute("SELECT * FROM request_log ORDER BY id DESC LIMIT 20;") as cursor:
+    async with db.execute(
+        "SELECT * FROM request_log ORDER BY id DESC LIMIT 20;"
+    ) as cursor:
         rows = await cursor.fetchall()
     await db.close()
     return rows
+
 
 if __name__ == "__main__":
     asyncio.run(init_db())

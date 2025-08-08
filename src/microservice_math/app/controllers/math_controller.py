@@ -1,5 +1,5 @@
 async def compute_pow(base: float, exponent: float) -> float:
-    return base ** exponent
+    return base**exponent
 
 
 async def compute_factorial(n: int) -> int:

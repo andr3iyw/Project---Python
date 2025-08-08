@@ -5,45 +5,56 @@ import requests
 st.set_page_config(page_title="Math Microservice GUI")
 st.title("Math Microservice")
 
-# Session object to persist login
-if 'session' not in st.session_state:
-    st.session_state['session'] = requests.Session()
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
+if "session" not in st.session_state:
+    st.session_state["session"] = requests.Session()
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
 
 def login(username, password):
     login_url = "http://gateway:8000/auth/login"
     data = {"username": username, "password": password}
-    response = st.session_state['session'].post(login_url, data=data, allow_redirects=False)
-    # If login is successful, Flask redirects to / (root). Check for 302 and Location header
+    response = st.session_state["session"].post(
+        login_url, data=data, allow_redirects=False
+    )
     if response.status_code == 302:
-        st.session_state['authenticated'] = True
+        st.session_state["authenticated"] = True
         st.success("Login successful!")
         st.rerun()
     else:
-        st.session_state['authenticated'] = False
+        st.session_state["authenticated"] = False
         st.error("Login failed. Check credentials.")
 
 
-if not st.session_state['authenticated']:
+if not st.session_state["authenticated"]:
     st.subheader("Login to use math services")
     login_tab, register_tab = st.tabs(["Login", "Register"])
     with login_tab:
         username = st.text_input("Username", key="login_username")
-        password = st.text_input("Password", type="password", key="login_password")
+        password = st.text_input(
+            "Password", type="password", key="login_password"
+        )
         if st.button("Login"):
             login(username, password)
     with register_tab:
         new_username = st.text_input("New Username", key="register_username")
-        new_password = st.text_input("New Password", type="password", key="register_password")
+        new_password = st.text_input(
+            "New Password", type="password", key="register_password"
+        )
         if st.button("Register"):
             register_url = "http://gateway:8000/auth/register"
             data = {"username": new_username, "password": new_password}
-            response = st.session_state['session'].post(register_url, data=data, allow_redirects=False)
-            if response.status_code == 302 and response.headers.get("Location", "").endswith("/login"):
+            response = st.session_state["session"].post(
+                register_url, data=data, allow_redirects=False
+            )
+            if response.status_code == 302 and response.headers.get(
+                "Location", ""
+            ).endswith("/login"):
                 st.success("Registration successful! You can now log in.")
             else:
-                st.error("Registration failed. Username may already exist or fields are empty.")
+                st.error(
+                    "Registration failed. Username may already exist or fields are empty."
+                )
     st.stop()
 
 operation = st.selectbox("Choose operation", ["pow", "factorial", "fibonacci"])
@@ -57,19 +68,17 @@ elif operation in ["factorial", "fibonacci"]:
 if st.button("Compute"):
     try:
         if operation == "pow":
-            response = st.session_state['session'].get(
+            response = st.session_state["session"].get(
                 "http://gateway:8000/math/pow",
-                params={"base": base, "exp": exponent}
+                params={"base": base, "exp": exponent},
             )
         elif operation == "factorial":
-            response = st.session_state['session'].get(
-                "http://gateway:8000/math/factorial",
-                params={"n": n}
+            response = st.session_state["session"].get(
+                "http://gateway:8000/math/factorial", params={"n": n}
             )
         elif operation == "fibonacci":
-            response = st.session_state['session'].get(
-                "http://gateway:8000/math/fibonacci",
-                params={"n": n}
+            response = st.session_state["session"].get(
+                "http://gateway:8000/math/fibonacci", params={"n": n}
             )
 
         if response.status_code == 200:
@@ -84,7 +93,9 @@ if st.button("Compute"):
 st.markdown("---")
 if st.checkbox("Recent logs from database"):
     try:
-        response = st.session_state['session'].get("http://gateway:8000/math/logs")
+        response = st.session_state["session"].get(
+            "http://gateway:8000/math/logs"
+        )
         if response.status_code == 200:
             logs = response.json()
             if logs:
