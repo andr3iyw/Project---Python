@@ -64,7 +64,7 @@ def compute_pow():
 
 
 async def log_to_db(operation: str, input_data: dict, result, username: str):
-    from microservice_math.app.db import get_db_connection
+    from gateway.app.db import get_db_connection
     from auth_service.models.request_log import insert_log
 
     db = await get_db_connection()

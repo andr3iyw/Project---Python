@@ -1,7 +1,7 @@
 import aiosqlite
 from models.user_sql import CREATE_USER_TABLE_SQL
 
-DB_PATH = "/app/db/microservice_math.db"
+DB_PATH = "/app/db/gateway.db"
 
 
 async def init_db():

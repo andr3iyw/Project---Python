@@ -18,7 +18,7 @@ import json
 from datetime import datetime, UTC
 from flask import Flask, request, jsonify
 import redis
-from microservice_math.app.db import init_db
+from gateway.app.db import init_db
 
 app = Flask(__name__)
 app.secret_key = "mathsecretkey"
@@ -164,7 +164,7 @@ def get_logs():
 
 
 async def log_to_db(operation: str, input_data: dict, result, username: str):
-    from microservice_math.app.db import get_db_connection
+    from gateway.app.db import get_db_connection
     from auth_service.models.request_log import insert_log
 
     db = await get_db_connection()
@@ -174,7 +174,7 @@ async def log_to_db(operation: str, input_data: dict, result, username: str):
 
 
 async def fetch_logs_from_db(username):
-    from microservice_math.app.db import get_db_connection
+    from gateway.app.db import get_db_connection
 
     db = await get_db_connection()
     async with db.execute(
