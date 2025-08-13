@@ -15,13 +15,16 @@ async def root():
     "/math/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
 )
 async def proxy_math(path: str, request: Request):
+    # Extract username from cookies/session if available
+    username = request.cookies.get("session_username")
+    headers = {k: v for k, v in request.headers.items() if k.lower() != "host"}
+    if username:
+        headers["X-Username"] = username
     async with httpx.AsyncClient() as client:
         resp = await client.request(
             method=request.method,
             url=f"{MATH_SERVICE_URL}/{path}",
-            headers={
-                k: v for k, v in request.headers.items() if k.lower() != "host"
-            },
+            headers=headers,
             params=request.query_params,
             content=await request.body(),
         )

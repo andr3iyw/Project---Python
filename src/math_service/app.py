@@ -9,6 +9,10 @@ app = Flask(__name__)
 app.secret_key = "mathsecretkey"
 
 
+def get_username_from_request():
+    return request.headers.get("X-Username", "anonymous")
+
+
 @app.route("/pow")
 def compute_pow():
     base = request.args.get("base", type=float)
@@ -16,7 +20,8 @@ def compute_pow():
     result = base**exp if base is not None and exp is not None else None
 
     if base is not None and exp is not None:
-        asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result))
+        username = get_username_from_request()
+        asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result, username))
 
     return jsonify(
         {"operation": "pow", "base": base, "exp": exp, "result": result}
@@ -32,7 +37,8 @@ def compute_factorial():
         for i in range(2, n + 1):
             result *= i
 
-        asyncio.run(log_to_db("factorial", {"n": n}, result))
+        username = get_username_from_request()
+        asyncio.run(log_to_db("factorial", {"n": n}, result, username))
 
     return jsonify({"operation": "factorial", "n": n, "result": result})
 
@@ -47,7 +53,8 @@ def compute_fibonacci():
             a, b = b, a + b
         result = a
 
-        asyncio.run(log_to_db("fibonacci", {"n": n}, result))
+        username = get_username_from_request()
+        asyncio.run(log_to_db("fibonacci", {"n": n}, result, username))
 
     return jsonify({"operation": "fibonacci", "n": n, "result": result})
 
@@ -55,7 +62,8 @@ def compute_fibonacci():
 @app.route("/logs")
 def get_logs():
     try:
-        rows = asyncio.run(fetch_logs_from_db())
+        username = get_username_from_request()
+        rows = asyncio.run(fetch_logs_from_db(username))
         logs = [
             {
                 "id": row[0],
@@ -63,6 +71,7 @@ def get_logs():
                 "input_data": row[2],
                 "result": row[3],
                 "timestamp": row[4],
+                "user ": row[5]
             }
             for row in rows
         ]
@@ -75,24 +84,22 @@ def get_logs():
 # helpers
 
 
-async def log_to_db(operation: str, input_data: dict, result):
-    from microservice_math.app.db import (
-        get_db_connection,
-    )  # import here to avoid circular imports
-    from microservice_math.app.models.request_log import insert_log
+async def log_to_db(operation: str, input_data: dict, result, username: str):
+    from microservice_math.app.db import get_db_connection
+    from auth_service.models.request_log import insert_log
 
     db = await get_db_connection()
     input_json = json.dumps(input_data)
-    await insert_log(db, operation, input_json, str(result))
+    await insert_log(db, operation, input_json, str(result), username)
     await db.close()
 
 
-async def fetch_logs_from_db():
+async def fetch_logs_from_db(username):
     from microservice_math.app.db import get_db_connection
 
     db = await get_db_connection()
     async with db.execute(
-        "SELECT * FROM request_log ORDER BY id DESC LIMIT 20;"
+        "SELECT * FROM request_log WHERE username = ? ORDER BY id DESC LIMIT 20;", (username,)
     ) as cursor:
         rows = await cursor.fetchall()
     await db.close()

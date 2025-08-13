@@ -1,6 +1,6 @@
 import aiosqlite
-from microservice_math.app.models import request_log
-from microservice_math.app.models.user_sql import CREATE_USER_TABLE_SQL
+from auth_service.models import request_log
+from auth_service.models.user_sql import CREATE_USER_TABLE_SQL
 
 DB_PATH = "/app/db/microservice_math.db"
 
