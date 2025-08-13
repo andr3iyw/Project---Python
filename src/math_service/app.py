@@ -1,12 +1,20 @@
+
 import asyncio
 import json
 from datetime import datetime, UTC
 from flask import Flask, request, jsonify
-
+import redis
 from microservice_math.app.db import init_db
 
 app = Flask(__name__)
 app.secret_key = "mathsecretkey"
+
+
+# Redis setup
+redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+
+# Caching flag: 0 = disabled, 1 = enabled
+CACHE_ENABLED = 0
 
 
 def get_username_from_request():
@@ -17,29 +25,52 @@ def get_username_from_request():
 def compute_pow():
     base = request.args.get("base", type=float)
     exp = request.args.get("exp", type=float)
-    result = base**exp if base is not None and exp is not None else None
-
-    if base is not None and exp is not None:
-        username = get_username_from_request()
-        asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result, username))
-
-    return jsonify(
-        {"operation": "pow", "base": base, "exp": exp, "result": result}
-    )
+    result = None
+    op_str = f"pow:{base}:{exp}"
+    cached = redis_client.get(op_str) if CACHE_ENABLED else None
+    if CACHE_ENABLED:
+        if cached is not None:
+            result = float(cached)
+        elif base is not None and exp is not None:
+            result = base ** exp
+            asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result, get_username_from_request()))
+            redis_client.set(op_str, result)
+        else:
+            result = None
+        if cached is None and base is not None and exp is not None:
+            import time
+            time.sleep(5)
+    else:
+        result = base ** exp if base is not None and exp is not None else None
+        if base is not None and exp is not None:
+            asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result, get_username_from_request()))
+    return jsonify({"operation": "pow", "base": base, "exp": exp, "result": result})
 
 
 @app.route("/factorial")
 def compute_factorial():
     n = request.args.get("n", type=int)
     result = None
-    if n is not None and n >= 0:
-        result = 1
-        for i in range(2, n + 1):
-            result *= i
-
-        username = get_username_from_request()
-        asyncio.run(log_to_db("factorial", {"n": n}, result, username))
-
+    op_str = f"factorial:{n}"
+    cached = redis_client.get(op_str) if CACHE_ENABLED else None
+    if CACHE_ENABLED:
+        if cached is not None:
+            result = int(cached)
+        elif n is not None and n >= 0:
+            result = 1
+            for i in range(2, n + 1):
+                result *= i
+            asyncio.run(log_to_db("factorial", {"n": n}, result, get_username_from_request()))
+            redis_client.set(op_str, result)
+        if cached is None and n is not None and n >= 0:
+            import time
+            time.sleep(5)
+    else:
+        if n is not None and n >= 0:
+            result = 1
+            for i in range(2, n + 1):
+                result *= i
+            asyncio.run(log_to_db("factorial", {"n": n}, result, get_username_from_request()))
     return jsonify({"operation": "factorial", "n": n, "result": result})
 
 
@@ -47,15 +78,28 @@ def compute_factorial():
 def compute_fibonacci():
     n = request.args.get("n", type=int)
     result = None
-    if n is not None and n >= 0:
-        a, b = 0, 1
-        for _ in range(n):
-            a, b = b, a + b
-        result = a
-
-        username = get_username_from_request()
-        asyncio.run(log_to_db("fibonacci", {"n": n}, result, username))
-
+    op_str = f"fibonacci:{n}"
+    cached = redis_client.get(op_str) if CACHE_ENABLED else None
+    if CACHE_ENABLED:
+        if cached is not None:
+            result = int(cached)
+        elif n is not None and n >= 0:
+            a, b = 0, 1
+            for _ in range(n):
+                a, b = b, a + b
+            result = a
+            asyncio.run(log_to_db("fibonacci", {"n": n}, result, get_username_from_request()))
+            redis_client.set(op_str, result)
+        if cached is None and n is not None and n >= 0:
+            import time
+            time.sleep(5)
+    else:
+        if n is not None and n >= 0:
+            a, b = 0, 1
+            for _ in range(n):
+                a, b = b, a + b
+            result = a
+            asyncio.run(log_to_db("fibonacci", {"n": n}, result, get_username_from_request()))
     return jsonify({"operation": "fibonacci", "n": n, "result": result})
 
 
