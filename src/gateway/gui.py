@@ -5,10 +5,13 @@ import requests
 st.set_page_config(page_title="Math Microservice GUI")
 st.title("Math Microservice")
 
+
 if "session" not in st.session_state:
     st.session_state["session"] = requests.Session()
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
+if "username" not in st.session_state:
+    st.session_state["username"] = ""
 
 
 def login(username, password):
@@ -19,10 +22,12 @@ def login(username, password):
     )
     if response.status_code == 302:
         st.session_state["authenticated"] = True
+        st.session_state["username"] = username
         st.success("Login successful!")
         st.rerun()
     else:
         st.session_state["authenticated"] = False
+        st.session_state["username"] = ""
         st.error("Login failed. Check credentials.")
 
 
@@ -56,6 +61,15 @@ if not st.session_state["authenticated"]:
                     "Registration failed. Username may already exist or fields are empty."
                 )
     st.stop()
+
+
+if st.session_state["authenticated"] and st.session_state["username"]:
+    st.info(f"Logged in as: {st.session_state['username']}")
+    if st.button("Log out / Erase username"):
+        st.session_state["authenticated"] = False
+        st.session_state["username"] = ""
+        st.success("You have been logged out and your username erased.")
+        st.rerun()
 
 operation = st.selectbox("Choose operation", ["pow", "factorial", "fibonacci"])
 
