@@ -1,0 +1,31 @@
+# admin_dump_logs.py
+import asyncio
+import json
+
+async def main(limit: int = 1000):
+    from gateway.app.db import get_db_connection
+    db = await get_db_connection()
+    try:
+        q = """
+        SELECT id, operation, input_data, result, timestamp, username
+        FROM request_log
+        ORDER BY id DESC
+        LIMIT ?;
+        """
+        async with db.execute(q, (limit,)) as cur:
+            rows = await cur.fetchall()
+    finally:
+        await db.close()
+
+    for r in rows:
+        print(json.dumps({
+            "id": r[0],
+            "operation": r[1],
+            "input_data": r[2],
+            "result": r[3],
+            "timestamp": r[4],
+            "user": r[5],
+        }, ensure_ascii=False))
+
+if __name__ == "__main__":
+    asyncio.run(main())

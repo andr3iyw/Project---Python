@@ -8,4 +8,6 @@ streamlit
 fastapi
 uvicorn
 httpx
+redis
 black
+pyjwt

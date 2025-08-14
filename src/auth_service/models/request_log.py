@@ -44,24 +44,6 @@ def get_username_from_request():
     return username
 
 
-@app.route("/pow")
-def compute_pow():
-    base = request.args.get("base", type=float)
-    exp = request.args.get("exp", type=float)
-    result = base**exp if base is not None and exp is not None else None
-
-    if base is not None and exp is not None:
-        username = get_username_from_request()
-        asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result, username))
-
-    return jsonify(
-        {"operation": "pow", "base": base, "exp": exp, "result": result}
-    )
-
-
-# Repeat for factorial and fibonacci:
-# Pass username to log_to_db
-
 
 async def log_to_db(operation: str, input_data: dict, result, username: str):
     from gateway.app.db import get_db_connection

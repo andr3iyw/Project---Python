@@ -1,5 +1,22 @@
-# Read limits from config file
+# math_microservice/app.py
 import os
+import asyncio
+import json
+from datetime import datetime, UTC
+from flask import Flask, request, jsonify
+import redis
+import jwt  # PyJWT
+
+from gateway.app.db import init_db  # keep your pathing
+
+app = Flask(__name__)
+app.secret_key = "mathsecretkey"
+
+# ====== CONFIG ======
+JWT_SECRET = os.getenv("AUTH_JWT_SECRET", "super-secret-jwt-key")  # must match auth_service
+JWT_ALG = "HS256"
+
+# ====== LIMITS CONFIG ======
 def read_limits_config(path):
     limits = {}
     if os.path.exists(path):
@@ -13,39 +30,64 @@ def read_limits_config(path):
 
 LIMITS = read_limits_config(os.path.join(os.path.dirname(__file__), 'limits.cfg'))
 
-import asyncio
-import json
-from datetime import datetime, UTC
-from flask import Flask, request, jsonify
-import redis
-from gateway.app.db import init_db
+# ====== REDIS CACHE ======
+redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+CACHE_ENABLED = int(os.getenv("CACHE_ENABLED", "0"))
 
-app = Flask(__name__)
-app.secret_key = "mathsecretkey"
-
-
-# Redis setup
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-
-# Caching flag: 0 = disabled, 1 = enabled
-CACHE_ENABLED = 0
-
-
+# ====== USERNAME EXTRACTION ======
 def get_username_from_request():
+    """
+    Prefer Authorization: Bearer <jwt> issued by auth_service.
+    Fallback to X-Username (for manual/testing).
+    """
+    # 1) JWT
+    auth = request.headers.get("Authorization", "")
+    if auth.lower().startswith("bearer "):
+        token = auth.split(" ", 1)[1].strip()
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG], options={"require": ["sub", "exp"]})
+            return payload.get("sub", "anonymous")
+        except Exception:
+            pass
+
+    # 2) Fallback header
     return request.headers.get("X-Username", "anonymous")
 
+# ====== HELPERS ======
+async def log_to_db(operation: str, input_data: dict, result, username: str):
+    from gateway.app.db import get_db_connection
+    from auth_service.models.request_log import insert_log
 
-@app.route("/pow")
+    db = await get_db_connection()
+    input_json = json.dumps(input_data)
+    await insert_log(db, operation, input_json, str(result), username)
+    await db.close()
+
+async def fetch_logs_from_db(username):
+    from gateway.app.db import get_db_connection
+
+    db = await get_db_connection()
+    async with db.execute(
+        "SELECT * FROM request_log WHERE username = ? ORDER BY id DESC LIMIT 20;", (username,)
+    ) as cursor:
+        rows = await cursor.fetchall()
+    await db.close()
+    return rows
+
+# ====== ENDPOINTS ======
+@app.get("/pow")
 def compute_pow():
     base = request.args.get("base", type=float)
     exp = request.args.get("exp", type=float)
     result = None
-    max_base = LIMITS.get('POW_MAX_BASE', 1e6)
+    max_base = LIMITS.get('POW_MAX_BASE', 1_000_000)
     max_exp = LIMITS.get('POW_MAX_EXP', 1000)
+
     if base is not None and abs(base) > max_base:
         return jsonify({"error": f"Base exceeds max allowed value ({max_base})"}), 400
     if exp is not None and abs(exp) > max_exp:
         return jsonify({"error": f"Exponent exceeds max allowed value ({max_exp})"}), 400
+
     op_str = f"pow:{base}:{exp}"
     cached = redis_client.get(op_str) if CACHE_ENABLED else None
     try:
@@ -58,25 +100,23 @@ def compute_pow():
                 redis_client.set(op_str, result)
             else:
                 result = None
-            if cached is None and base is not None and exp is not None:
-                import time
-                time.sleep(5)
         else:
             result = base ** exp if base is not None and exp is not None else None
             if base is not None and exp is not None:
                 asyncio.run(log_to_db("pow", {"base": base, "exp": exp}, result, get_username_from_request()))
     except (OverflowError, ValueError) as e:
         return jsonify({"error": f"Calculation error: {str(e)}"}), 400
+
     return jsonify({"operation": "pow", "base": base, "exp": exp, "result": result})
 
-
-@app.route("/factorial")
+@app.get("/factorial")
 def compute_factorial():
     n = request.args.get("n", type=int)
     result = None
     max_n = LIMITS.get('FACTORIAL_MAX_N', 10000)
     if n is not None and n > max_n:
         return jsonify({"error": f"n exceeds max allowed value ({max_n})"}), 400
+
     op_str = f"factorial:{n}"
     cached = redis_client.get(op_str) if CACHE_ENABLED else None
     try:
@@ -89,9 +129,6 @@ def compute_factorial():
                     result *= i
                 asyncio.run(log_to_db("factorial", {"n": n}, result, get_username_from_request()))
                 redis_client.set(op_str, result)
-            if cached is None and n is not None and n >= 0:
-                import time
-                time.sleep(5)
         else:
             if n is not None and n >= 0:
                 result = 1
@@ -100,16 +137,17 @@ def compute_factorial():
                 asyncio.run(log_to_db("factorial", {"n": n}, result, get_username_from_request()))
     except (OverflowError, ValueError) as e:
         return jsonify({"error": f"Calculation error: {str(e)}"}), 400
+
     return jsonify({"operation": "factorial", "n": n, "result": result})
 
-
-@app.route("/fibonacci")
+@app.get("/fibonacci")
 def compute_fibonacci():
     n = request.args.get("n", type=int)
     result = None
     max_n = LIMITS.get('FIBONACCI_MAX_N', 100000)
     if n is not None and n > max_n:
         return jsonify({"error": f"n exceeds max allowed value ({max_n})"}), 400
+
     op_str = f"fibonacci:{n}"
     cached = redis_client.get(op_str) if CACHE_ENABLED else None
     try:
@@ -123,9 +161,6 @@ def compute_fibonacci():
                 result = a
                 asyncio.run(log_to_db("fibonacci", {"n": n}, result, get_username_from_request()))
                 redis_client.set(op_str, result)
-            if cached is None and n is not None and n >= 0:
-                import time
-                time.sleep(5)
         else:
             if n is not None and n >= 0:
                 a, b = 0, 1
@@ -135,10 +170,10 @@ def compute_fibonacci():
                 asyncio.run(log_to_db("fibonacci", {"n": n}, result, get_username_from_request()))
     except (OverflowError, ValueError) as e:
         return jsonify({"error": f"Calculation error: {str(e)}"}), 400
+
     return jsonify({"operation": "fibonacci", "n": n, "result": result})
 
-
-@app.route("/logs")
+@app.get("/logs")
 def get_logs():
     try:
         username = get_username_from_request()
@@ -150,7 +185,7 @@ def get_logs():
                 "input_data": row[2],
                 "result": row[3],
                 "timestamp": row[4],
-                "user ": row[5]
+                "user": row[5],
             }
             for row in rows
         ]
@@ -159,31 +194,9 @@ def get_logs():
         print("LOG FETCH ERROR:", e)
         return jsonify({"error": str(e)}), 500
 
-
-# helpers
-
-
-async def log_to_db(operation: str, input_data: dict, result, username: str):
-    from gateway.app.db import get_db_connection
-    from auth_service.models.request_log import insert_log
-
-    db = await get_db_connection()
-    input_json = json.dumps(input_data)
-    await insert_log(db, operation, input_json, str(result), username)
-    await db.close()
-
-
-async def fetch_logs_from_db(username):
-    from gateway.app.db import get_db_connection
-
-    db = await get_db_connection()
-    async with db.execute(
-        "SELECT * FROM request_log WHERE username = ? ORDER BY id DESC LIMIT 20;", (username,)
-    ) as cursor:
-        rows = await cursor.fetchall()
-    await db.close()
-    return rows
-
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": "math_microservice"}
 
 if __name__ == "__main__":
     asyncio.run(init_db())
