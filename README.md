@@ -2,6 +2,7 @@
 # Math Microservice Project
 
 This project is a microservices-based system for user authentication and mathematical computations, with a web GUI. It uses Docker Compose for orchestration.
+<img width="1717" height="866" alt="mermaid-diagram-2025-08-14-143337" src="https://github.com/user-attachments/assets/a9657d44-6351-43d3-b0fd-9342b15d3f83" />
 
 ## Architecture Overview
 
