@@ -1,59 +1,100 @@
+
 # Math Microservice Project
 
-This project is split into three microservices and a Streamlit GUI:
+This project is a microservices-based system for user authentication and mathematical computations, with a web GUI. It uses Docker Compose for orchestration.
 
-- **Auth Microservice** (Flask, port 5001): handles user registration and login
-- **Math Microservice** (Flask, port 5002): computes power, factorial, and Fibonacci operations
-- **Gateway Microservice** (FastAPI, port 8000): acts as a reverse proxy between GUI and backend services
-- **Streamlit GUI** (port 8501): user interface for interacting with the system
+## Architecture Overview
 
-## Prerequisites
+- **auth_service** (Flask, port 5001):  
+  Handles user registration, login, and authentication. Stores user data and verifies credentials.
 
-- Python 3.10+
-- Docker & Docker Compose
-- Install dependencies:
-  
-  ```
-  pip install -r requirements.txt
-  ```
+- **math_service** (Flask, port 5002):  
+  Provides endpoints for mathematical operations: power, factorial, and Fibonacci.  
+  - Uses Redis for caching results (optional, controlled by `CACHE_ENABLED`).
+  - Logs each request to a shared SQLite database.
 
----
+- **gateway** (FastAPI, port 8000):  
+  Acts as an API gateway/reverse proxy.  
+  - Routes requests from the GUI to the appropriate backend service.
+  - Adds user context to requests (e.g., username).
+
+- **gui** (Streamlit, port 8501):  
+  User interface for registration, login, and performing math operations.  
+  - All interactions go through the gateway.
+
+## Data Flow
+
+1. **User interacts with GUI** (registers, logs in, requests math operations).
+2. **GUI sends requests to Gateway** (`localhost:8000`).
+3. **Gateway forwards requests** to either `auth_service` or `math_service` based on the endpoint.
+4. **auth_service** authenticates users.
+5. **math_service** performs calculations, optionally caches results in Redis, and logs requests in the shared database.
+6. **Results and logs** are returned to the GUI for display.
+
+## Shared Database
+
+- All services use a shared SQLite database (`microservice_math.db`) via a Docker volume (`shared-db`).
+- The database stores user data and logs of all math operations.
+
+## Redis Caching
+
+- The math service uses Redis (host: `redis`, port: `6379`) for caching results.
+- Caching is controlled by the `CACHE_ENABLED` flag in `math_service/app.py`.
 
 ## How to Run Everything (via Docker)
 
-> Recommended for quick setup and clean dependency management
+### Prerequisites
+
+- Python 3.10+
+- Docker & Docker Compose
 
 ### 1. Build & Start All Services
 
-From the root directory:
-```
+From the root directory, run:
+```powershell
 docker-compose up --build
 ```
-
-This launches:
-- Flask-based `auth_service` on port **5001**
-- Flask-based `math_service` on port **5002**
-- FastAPI `gateway` on port **8000**
-- Streamlit GUI on port **8501**
+This will:
+- Build and start all microservices and the GUI.
+- Set up the shared database volume.
 
 ### 2. Access the GUI
 
 Open your browser at:  
-**[http://localhost:8501](http://localhost:8501)**
+**http://localhost:8501**
 
----
+### 3. Stopping Services
+
+To stop all services:
+```powershell
+docker-compose down
+```
 
 ## Usage
 
-- Use the GUI to register/login and compute mathematical operations.
-- All requests flow through the API Gateway, which routes them to the correct microservice.
-- Each request is logged into the shared SQLite database (`microservice_math.db`).
-- Recent logs can be viewed in the GUI.
+- Register and log in via the GUI.
+- Perform math operations (power, factorial, Fibonacci).
+- View recent logs in the GUI.
+- All requests are routed through the gateway for security and logging.
 
----
+## Troubleshooting
+
+- If you see `ModuleNotFoundError: No module named 'redis'`, ensure `redis` is in `requirements.txt` and rebuild with `docker-compose build --no-cache`.
+- If logs do not appear, check that the database volume is mounted and the `request_log` table exists.
+- Make sure all services are running (`docker-compose ps`).
+
+## File Structure
+
+- `src/auth_service/`: Auth microservice code
+- `src/math_service/`: Math microservice code
+- `src/gateway/app/`: API gateway code
+- `src/gateway/gui.py`: Streamlit GUI code
+- `requirements.txt`: Python dependencies (including `redis`)
+- `docker-compose.yml`: Service orchestration
+- `Dockerfile.*`: Docker build files for each service
 
 ## Notes
 
-- Ensure all services are running before interacting with the GUI.
-- The SQLite database is shared across services using a Docker volume.
-- If logs don’t appear, make sure the `request_log` table exists or that the database volume is mounted correctly.
+- All services communicate over the Docker network using service names (e.g., `math_service`, `auth_service`).
+- The shared database volume ensures persistent and consistent data across services.
+- Redis must be running and accessible for caching to work.
